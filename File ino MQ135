@@ -1,0 +1,73 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <MQ135.h> // Sertakan library MQ135 di sini
+
+const char* ssid = "KONSELING 2";
+const char* password = "";
+String serverName = "http://192.168.80.101:5000";
+
+WiFiClient espClient;
+MQ135 mq135(34); // Inisialisasi objek MQ135 dengan pin analog yang sesuai (misalnya, pin 34)
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Hello, ESP32-S2!!!");
+  setup_wifi(); // Panggil fungsi setup_wifi() untuk mengatur koneksi WiFi
+}
+
+void loop() {
+  delay(10); // this speeds up the simulation
+
+  HTTPClient http;
+  String url = serverName + "/submit" + "?temp=24.37"; // Anda bisa mengganti "24.37" dengan nilai suhu aktual jika ada sensor suhu
+  http.begin(url);
+  int httpResponseCode = http.GET();
+      
+  if (httpResponseCode > 0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    String payload = http.getString();
+    Serial.println(payload);
+  } else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+
+  // Membaca nilai resistansi sensor MQ135
+  float resistance = mq135.getResistance();
+  
+  // Mengonversi nilai resistansi menjadi konsentrasi gas (ppm)
+  float ppm = mq135.getPPM();
+  
+  // Menampilkan nilai konsentrasi gas ke serial monitor
+  Serial.print("Resistance: ");
+  Serial.print(resistance);
+  Serial.print(" Ohms, PPM: ");
+  Serial.println(ppm);
+  
+  delay(2000); // Delay untuk membaca data setiap 2 detik
+}
+
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  randomSeed(micros());
+
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
